@@ -7,7 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Validator;
 use App\Models\Transaksi;
+use App\Models\Customer;
 use DB;
+use Carbon\Carbon;
 
 class TransaksiController extends Controller
 {
@@ -15,13 +17,14 @@ class TransaksiController extends Controller
     {   
         $transaksi = DB::table('transaksis')
             ->join('pegawais', 'transaksis.id_pegawai', '=', 'pegawais.id_pegawai')
-            ->join('customers', 'transaksis.id_customer', '=', 'jadwal_pegawais.id_customer')
-            ->join('drivers', 'transaksis.id_driver', '=', 'pegawais.id_driver')
-            ->join('promos', 'transaksis.id_promo', '=', 'jadwal_pegawais.id_promo')
-            ->join('mobils', 'transaksis.id_mobil', '=', 'pegawais.id_mobil')
-            ->select('transaksis.*','pegawais.id_pegawai','pegawais.nama_pegawai','customers.id_customer','customers.nama_customer',
-                     'drivers.id_driver','drivers.nama_driver','promos.id_promo','promos.kode_promo','promos.jenis_promo','mobils.id_mobil',
-                     'mobils.nama_mobil')
+            ->join('customers', 'transaksis.id_customer', '=', 'customers.id_customer')
+            ->leftjoin('drivers', 'transaksis.id_driver', '=', 'drivers.id_driver')
+            ->leftjoin('promos', 'transaksis.id_promo', '=', 'promos.id_promo')
+            ->join('mobils', 'transaksis.id_mobil', '=', 'mobils.id_mobil')
+            ->select('transaksis.id_transaksi','transaksis.created_at','transaksis.hari','pegawais.nama_pegawai','customers.nama_customer','drivers.nama_driver','drivers.harga_driver','promos.kode_promo',
+                     'mobils.nama_mobil','mobils.harga_sewa','transaksis.tanggal_mulai','transaksis.tanggal_selesai','transaksis.tanggal_kembali',
+                     'transaksis.diskon','transaksis.denda','transaksis.sub_total','transaksis.total_biaya','transaksis.metode_pembayaran',
+                     'transaksis.status_transaksi','transaksis.bukti_pembayaran','transaksis.rating')
             ->get();
 
         if(count($transaksi)> 0){
@@ -41,14 +44,15 @@ class TransaksiController extends Controller
     {   
         $transaksi = DB::table('transaksis')
             ->join('pegawais', 'transaksis.id_pegawai', '=', 'pegawais.id_pegawai')
-            ->join('customers', 'transaksis.id_customer', '=', 'jadwal_pegawais.id_customer')
-            ->join('drivers', 'transaksis.id_driver', '=', 'pegawais.id_driver')
-            ->join('promos', 'transaksis.id_promo', '=', 'jadwal_pegawais.id_promo')
-            ->join('mobils', 'transaksis.id_mobil', '=', 'pegawais.id_mobil')
-            ->select('transaksis.*','pegawais.id_pegawai','pegawais.nama_pegawai','customers.id_customer','custoemrs.nama_customer',
-                     'drivers.id_driver','drivers.nama_driver','promos.id_promo','promos.kode_promo','promos.jenis_promo','mobils.id_mobil',
-                     'mobils.nama_mobil')
-            ->where('id_transaksi',$id)
+            ->join('customers', 'transaksis.id_customer', '=', 'customers.id_customer')
+            ->leftjoin('drivers', 'transaksis.id_driver', '=', 'drivers.id_driver')
+            ->leftjoin('promos', 'transaksis.id_promo', '=', 'promos.id_promo')
+            ->join('mobils', 'transaksis.id_mobil', '=', 'mobils.id_mobil')
+            ->select('transaksis.id_transaksi','transaksis.created_at','transaksis.hari','pegawais.nama_pegawai','customers.nama_customer','drivers.nama_driver','drivers.harga_driver','promos.kode_promo',
+                     'mobils.nama_mobil','mobils.harga_sewa','transaksis.tanggal_mulai','transaksis.tanggal_selesai','transaksis.tanggal_kembali',
+                     'transaksis.diskon','transaksis.denda','transaksis.sub_total','transaksis.total_biaya','transaksis.metode_pembayaran',
+                     'transaksis.status_transaksi','transaksis.bukti_pembayaran','transaksis.rating')
+            ->where('transaksis.id_customer',$id) //masih error
             ->get();
 
         if(count($transaksi)> 0){
@@ -64,45 +68,30 @@ class TransaksiController extends Controller
         ], 400);
     }
 
-    // public function store(Request $request){
-    //     $storeData = $request->all();
-    //     $validate = Validator::make($storeData, [
-    //         'id_mobil' => 'required',
-    //         'id_promo' => 'nullable',
-    //         'id_driver' => 'nullable',
-    //         'tanggal_mulai' => 'required|date',
-    //         'tanggal_selesai' => 'required|date',
-    //         'metode_pembayaran' => 'required',
-    //     ]);
+    public function showDriver($dateStart,$dateEnd){
+        $tanggalMulai = Carbon::Parse($dateStart)->format('Y-m-d H:i:s');
+        $tanggalSelesai = Carbon::Parse($dateEnd)->format('Y-m-d H:i:s');
 
-    //     $count= DB::table('transaksis')->count() +1;
-    //     $date= Carbon::now()->format('ymd');
+        $check = DB::table('drivers')
+            ->select('drivers.id_driver','drivers.nama_driver','transaksis.tanggal_mulai','transaksis.tanggal_selesai')
+            ->leftjoin('transaksis','drivers.id_driver','=','transaksis.id_driver')
+            ->where([['transaksis.tanggal_mulai','>',$tanggalMulai],
+                    ['transaksis.tanggal_mulai','<',$tanggalSelesai]])
+            ->orwhere([['transaksis.tanggal_mulai','<',$tanggalMulai],
+                    ['transaksis.tanggal_selesai','>',$tanggalSelesai]])        
+            ->orwhere([['transaksis.tanggal_selesai','>',$tanggalMulai],
+                    ['transaksis.tanggal_selesai','<',$tanggalSelesai]])
+            ->get()->toArray();
 
-    //     if($count <10){
-    //         $zero='-00';
-    //     }else{$zero='-0';}
+        $arrayOfId = array_map(function ($item) {
+            return $item->id_driver;
+        }, $check);
 
-    //     if($validate->fails())
-    //         return response(['message' => $validate->errors()], 400);
-        
-    //     $transaksi = Transaksi::create([
-    //         'id_transaksi' =>'TRN'.$date.'01'.$zero.$count,
-    //         'jabatan' => '5',
-    //         'password' => $storeData['password']
-    //     ]);
-
-    //     return response([
-    //         'message' => 'Add Customer Success',
-    //         'data' => $customer
-    //     ], 200);
-    // }
-
-    public function showDriver($tanggal){
         $driver = DB::table('drivers')
-        ->join('transaksis','drivers.id_driver','=','transaksis.id_driver')
-        ->select('drivers.id_driver','drivers.nama_drivers')
-        ->whereNotBetween($tanggal,['transaksis.tanggal_mulai','transaksis.tanggal_selesai'])->get();
-
+            ->select('id_driver','nama_driver')
+            ->whereNotIn('id_driver', $arrayOfId)
+            ->get();
+        
         if(count($driver)> 0){
             return response([
                 'message' => 'Retrieve All Success',
@@ -116,11 +105,29 @@ class TransaksiController extends Controller
         ], 400);
     }
 
-    public function showMobil($tanggal){
-        $mobil = DB::table('mobils')
-        ->join('transaksis','transaksis.id_mobil','=','mobils.id_mobil')
-        ->select('mobils.id_mobil','mobils.nama_mobil')
-        ->whereNotBetween($tanggal,['transaksis.tanggal_mulai','transaksis.tanggal_selesai'])->get();
+    public function showMobil($dateStart,$dateEnd){
+        $tanggalMulai = Carbon::Parse($dateStart)->format('Y-m-d H:i:s');
+        $tanggalSelesai = Carbon::Parse($dateEnd)->format('Y-m-d H:i:s');
+
+        $check = DB::table('mobils')
+            ->select('mobils.id_mobil','mobils.nama_mobil','transaksis.tanggal_mulai','transaksis.tanggal_selesai')
+            ->leftjoin('transaksis','mobils.id_mobil','=','transaksis.id_mobil')
+            ->where([['transaksis.tanggal_mulai','>',$tanggalMulai],
+                    ['transaksis.tanggal_mulai','<',$tanggalSelesai]])
+            ->orwhere([['transaksis.tanggal_mulai','<',$tanggalMulai],
+                    ['transaksis.tanggal_selesai','>',$tanggalSelesai]])        
+            ->orwhere([['transaksis.tanggal_selesai','>',$tanggalMulai],
+                    ['transaksis.tanggal_selesai','<',$tanggalSelesai]])
+            ->get()->toArray();
+
+        $arrayOfId = array_map(function ($item) {
+            return $item->id_mobil;
+        }, $check);
+
+         $mobil = DB::table('mobils')
+            ->select('id_mobil','nama_mobil')
+            ->whereNotIn('id_mobil', $arrayOfId)
+            ->get();
 
         if(count($mobil)> 0){
             return response([
@@ -135,55 +142,88 @@ class TransaksiController extends Controller
         ], 400);
     }
 
-    public function verifikasiPenyewaan($id){
-        $transaksi = Transaksi::find($id);
+    public function showPromo(){
+        $promo = DB::table('promos')
+            ->select('id_promo','jenis_promo','potongan_harga')
+            ->where('status_promo',1)
+            ->get();
 
-        if(is_null($transaksi)){
+        if(count($promo)> 0){
             return response([
-                'message' => 'Transaksi tidak ditemukan',
-                'data' => null
-            ], 404);
-        }
-
-        $transaksi->status_transaksi = 'Sedang Berjalan';
-
-        
-        if($transaksi->save()) {
-            return response([
-                'message' => 'Update Transaksi Success',
-                'data' => $transaksi
+                'message' => 'Retrieve All Success',
+                'data' => $promo
             ], 200);
         }
-        
+
         return response([
-            'message' => 'Update Transaksi Failed',
+            'message' => 'Empty',
             'data' => null
         ], 400);
     }
 
-    public function verifikasiPembayaran($id){
+    public function destroy($id)
+    {
         $transaksi = Transaksi::find($id);
 
         if(is_null($transaksi)){
             return response([
-                'message' => 'Transaksi tidak ditemukan',
+                'message' => 'Transaksi Not Found',
                 'data' => null
             ], 404);
         }
 
-        $transaksi->status_transaksi = 'Selesai';
-
-        
-        if($transaksi->save()) {
+        if($transaksi->delete()){
             return response([
-                'message' => 'Update Transaksi Success',
+                'message' => 'Delete Transaksi Success',
                 'data' => $transaksi
             ], 200);
         }
-        
+
         return response([
-            'message' => 'Update Transaksi Failed',
+            'message' => 'Delete Transaksi Failed',
             'data' => null
         ], 400);
+    }
+
+    public function cekPromo($tanggalMulai,$tanggalSelesai,$id,$promo_id)
+    {
+        $customer = Customer::find($id);
+
+        if($promo_id == 1){
+            $tanggalLahirCust = Carbon::Parse($customer->tanggal_lahir)->format('m-d');
+            $tanggalSewaM = Carbon::Parse($tanggalMulai)->format('m-d');
+            $tanggalSewaS = Carbon::Parse($tanggalSelesai)->format('m-d');
+
+            if(($tanggalLahirCust >= $tanggalSewaM) && ($tanggalLahirCust <= $tanggalSewaS)){
+                return response([
+                    'message' => 'Lolos Syarat',
+                    'data' => 1
+                ], 200);
+            }
+
+            return response([
+                'message' => 'Tidak Lolos Syarat',
+                'data' => 0
+            ], 400);
+        }
+        else if($promo_id == 3){
+            $saiki =  Carbon::now();
+            $tanggalLahirCust = Carbon::Parse($customer->tanggal_lahir);
+
+            $diff = $tanggalLahirCust->diffInYears($saiki);
+
+            if(($diff >= 17) && ($diff <= 22)){
+                return response([
+                    'message' => 'Lolos Syarat',
+                    'data' => 1
+                ], 200);
+            }
+
+            return response([
+                'message' => 'Tidak Lolos Syarat',
+                'data' => 0
+            ], 400);
+        }
+        
     }
 }

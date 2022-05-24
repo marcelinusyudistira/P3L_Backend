@@ -16,19 +16,19 @@ class Transaksi extends Model
 
     protected $fillable = [
         'id_transaksi','tanggal_mulai','tanggal_selesai','tanggal_kembali','metode_pembayaran','total_biaya','sub_total',
-        'tanggal_transaksi','denda','diskon','status_transaksi','rating','id_promo','id_mobil',
-        'id_driver','id_customer','id_pegawai',
+        'tanggal_transaksi','denda','diskon','status_transaksi','rating','id_promo','id_mobil','bukti_pembayaran',
+        'id_driver','id_customer','id_pegawai','hari',
     ];
 
     public function getCreatedAtAttribute(){
         if(!is_null($this->attributes['created_at'])){
-            return Carbon::parse($this->attributes['created_at'])->format('Y-m-d H:i:s');
+            return Carbon::parse($this->attributes['created_at'])->format('Y-m-d H:i');
         }
     }
 
     public function getUpdatedAtAttribute(){
         if(!is_null($this->attributes['updated_at'])){
-            return Carbon::parse($this->attributes['updated_at'])->format('Y-m-d H:i:s');
+            return Carbon::parse($this->attributes['updated_at'])->format('Y-m-d H:i');
         }
     }
 }

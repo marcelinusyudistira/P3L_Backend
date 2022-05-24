@@ -36,8 +36,12 @@ Route::group(['middleware' => 'auth:api'], function (){
     Route::post('customer', 'Api\CustomerController@store');
     Route::put('customer/{id}', 'Api\CustomerController@update');
     Route::post('storeTransaksi/{email}', 'Api\CustomerController@storeTransaksi');
+    Route::post('storeWithDriver/{email}', 'Api\CustomerController@storeWithDriver');
     Route::get('showDriver/{tanggal}', 'Api\TransaksiController@showDriver');
     Route::get('showMobil/{tanggal}', 'Api\TransaksiController@showMobil');
+    // Route::put('updateTransaksi/{id}', 'Api\CustomerController@updateTransaksi');
+    Route::put('uploadBuktiBayar/{id}', 'Api\CustomerController@uploadBuktiBayar');
+    Route::get('cekTgl/{id}', 'Api\CustomerController@cekTgl');
 });
 
 Route::group(['middleware' => 'auth:api'], function (){
@@ -46,7 +50,11 @@ Route::group(['middleware' => 'auth:api'], function (){
     Route::post('pegawai', 'Api\PegawaiController@store');
     Route::put('pegawai/{id}', 'Api\PegawaiController@update');
     Route::delete('pegawai/{id}', 'Api\PegawaiController@destroy');
+    Route::put('updateTransaksi/{id}', 'Api\PegawaiController@updateTransaksi');
 });
+
+Route::put('verifikasiPenyewaan/{id}', 'Api\PegawaiController@verifikasiPenyewaan');
+Route::put('verifikasiPembayaran/{id}', 'Api\PegawaiController@verifikasiPembayaran');
 
 Route::group(['middleware' => 'auth:api'], function (){
     Route::get('driver', 'Api\DriverController@index');
@@ -91,6 +99,16 @@ Route::group(['middleware' => 'auth:api'], function (){
     Route::get('showPegawai/{role}', 'Api\DetailJadwalController@showPegawai');
     Route::get('indexHari/{role}/{hari}', 'Api\DetailJadwalController@indexHari');
     Route::get('searchJadwal/{role}/{nama}', 'Api\DetailJadwalController@searchJadwal');
+});
+
+Route::group(['middleware' => 'auth:api'], function (){
+    Route::get('showTransaksi', 'Api\TransaksiController@index');
+    Route::get('showTransaksi/{id}', 'Api\TransaksiController@show');
+    Route::get('showDriver/{dateStart}/{dateEnd}', 'Api\TransaksiController@showDriver');
+    Route::get('showMobil/{dateStart}/{dateEnd}', 'Api\TransaksiController@showMobil');
+    Route::get('showPromo', 'Api\TransaksiController@showPromo');
+    Route::delete('deleteTransaksi/{id}', 'Api\TransaksiController@destroy');
+    Route::get('cekPromo/{tanggalMulai}/{tanggalSelesai}/{id}/{promo_id}', 'Api\TransaksiController@cekPromo');
 });
 
 Route::group(['middleware' => 'auth:api'], function (){

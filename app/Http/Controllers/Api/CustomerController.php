@@ -67,43 +67,6 @@ class CustomerController extends Controller
         ], 404);   
     }
 
-    // public function store(Request $request){
-    //     $storeData = $request->all();
-    //     $validate = Validator::make($storeData, [
-    //         'nama_customer' => 'required|max:60',
-    //         'tanggal_lahir' => 'required|date',
-    //         'gender' => 'required|max:20',
-    //         'alamat' => 'required|max:150',
-    //         'nomor_telepon' => 'required|max:14',
-    //         'ktp' => 'required',
-    //         'sim' => 'required',
-    //         'email' => 'required|email:rfc,dns|unique:customers'
-    //     ]);
-
-    //     $count= DB::table('customers')->count() +1;
-    //     $date= Carbon::now()->format('ymd');
-
-    //     if($validate->fails())
-    //         return response(['message' => $validate->errors()], 400);
-
-    //     $customer = Customer::create([
-    //         'id_customer' => 'CUS'.$date.'-0'.$count,
-    //         'nama_customer' => $request->nama_customer,
-    //         'tanggal_lahir' => $request->tanggal_lahir,
-    //         'gender' => $request->gender,
-    //         'alamat' => $request->alamat,
-    //         'nomor_telepon' => $request->nomor_telepon,
-    //         'ktp' => $request->ktp,
-    //         'sim' => $request->sim,
-    //         'email' => $request->email
-    //     ]);
-
-    //     return response([
-    //         'message' => 'Add Customer Success',
-    //         'data' => $customer
-    //     ], 200);
-    // }
-
     public function storeTransaksi(Request $request, $email){
         $customer = DB::table('customers')
                     ->select('id_customer','nama_customer')->where('email',$email)->get();
@@ -111,7 +74,7 @@ class CustomerController extends Controller
 
         $storeData = $request->all();
         $validate = Validator::make($storeData, [
-            'id_pegawai' => 'required',
+            'id_pegawai' => 'nullable',
             'id_mobil' => 'required',
             'id_promo' => 'nullable',
             'tanggal_mulai' => 'required|date',
@@ -173,7 +136,7 @@ class CustomerController extends Controller
         
         $transaksi = Transaksi::create([
             'id_transaksi' =>'TRN'.$date.'00'.$zero.$count,
-            'id_pegawai' => $request->id_pegawai,
+            'id_pegawai' => 'PEG-3',
             'id_promo' => $request->id_promo,
             'id_customer' => $id_customer,
             'id_mobil' => $request->id_mobil,
@@ -185,6 +148,7 @@ class CustomerController extends Controller
             'sub_total' => $subTotal,
             'total_biaya' => $totalBiaya,
             'diskon' => $diskon,
+            'hari' => $days,
             'status_transaksi' => 'Belum Diverifikasi',
             // 'tanggal_transaksi' => $dateTransaksi,
         ]);
@@ -202,7 +166,7 @@ class CustomerController extends Controller
 
         $storeData = $request->all();
         $validate = Validator::make($storeData, [
-            'id_pegawai' => 'required',
+            'id_pegawai' => 'nullable',
             'id_mobil' => 'required',
             'id_promo' => 'nullable',
             'id_driver' => 'required',
@@ -249,12 +213,21 @@ class CustomerController extends Controller
         $biayaMobil = $mobil[0]->harga_sewa;
 
         //============================ harga driver
-        $driver = DB::table('mobils')
-                ->select('id_mobil','nama_mobil','harga_sewa')
-                ->where('id_mobil',$request->id_mobil)
+        $driver = DB::table('drivers')
+                ->select('id_driver','nama_driver','harga_driver')
+                ->where('id_driver',$request->id_driver)
                 ->get();
         
-        $biayaMobil = $mobil[0]->harga_sewa;
+        $biayaDriver = $driver[0]->harga_driver;
+
+        $driver[0]->status_driver = 'Unavailable';
+
+        // if($driver->save()) {
+        //     return response([
+        //         'message' => 'Update Status Driver Success',
+        //         'data' => $driver
+        //     ], 200);
+        // }
 
         //============================= lama pinjam
         $dateMulai = new DateTime($request->tanggal_mulai);
@@ -264,19 +237,19 @@ class CustomerController extends Controller
         $days = $diff->format('%a');
 
         //============================= total biaya
-        $subTotal = $biayaMobil * $days;
+        $subTotal = ($biayaMobil * $days) + ($biayaDriver * $days) ;
         $diskon = $potonganHarga * $subTotal;
         $totalBiaya = $subTotal - $diskon;
 
         //=============================================
         
         $transaksi = Transaksi::create([
-            'id_transaksi' =>'TRN'.$date.'00'.$zero.$count,
-            'id_pegawai' => $request->id_pegawai,
+            'id_transaksi' =>'TRN'.$date.'01'.$zero.$count,
+            'id_pegawai' => 'PEG-3',
             'id_promo' => $request->id_promo,
             'id_customer' => $id_customer,
             'id_mobil' => $request->id_mobil,
-            // 'id_driver' => $request->id_driver,
+            'id_driver' => $request->id_driver,
             'tanggal_mulai' => $request->tanggal_mulai,
             'tanggal_selesai' => $request->tanggal_selesai,
             'tanggal_kembali' => $request->tanggal_kembali,
@@ -285,6 +258,7 @@ class CustomerController extends Controller
             'total_biaya' => $totalBiaya,
             'diskon' => $diskon,
             'status_transaksi' => 'Belum Diverifikasi',
+            'hari' => $days,
             // 'tanggal_transaksi' => $dateTransaksi,
         ]);
 
@@ -292,6 +266,51 @@ class CustomerController extends Controller
             'message' => 'Add Transaksi Success',
             'data' => $transaksi
         ], 200);
+    }
+
+    //upload bukti bayar
+    public function uploadBuktiBayar(Request $request, $id){
+        $transaksi = Transaksi::find($id);
+
+        if(is_null($transaksi)){
+            return response([
+                'message' => 'Transaksi Not Found',
+                'data' => null
+            ], 404);
+        }
+
+        $updateData = $request->all();
+        $validate = Validator::make($updateData, [
+            'metode_pembayaran' => 'required',
+            'bukti_pembayaran' => 'required',
+        ]);
+
+        if($request->hasFile('bukti_pembayaran')) {
+            $file = $request->file('bukti_pembayaran');
+            $image = public_path().'/images/';
+            $file -> move($image, $file->getClientOriginalName());
+            $image = '/images/'.$file->getClientOriginalName();
+            $transaksi->bukti_pembayaran = $image;
+        }else
+            $image=null;
+            
+        if($validate->fails())
+            return response(['message' => $validate->errors()], 400);
+
+        $transaksi->metode_pembayaran = $updateData['metode_pembayaran'];
+        $transaksi->status_transaksi = 'Sudah Lunas Belum Verifikasi';
+
+        if($transaksi->save()) {
+            return response([
+                'message' => 'Pembayaran Success',
+                'data' => $transaksi
+            ], 200);
+        }
+        
+        return response([
+            'message' => 'Pembayaran Failed',
+            'data' => null
+        ], 400);    
     }
 
     public function update(Request $request, $id){
@@ -355,6 +374,33 @@ class CustomerController extends Controller
         return response([
             'message' => 'Update Customer Failed',
             'data' => null
+        ], 400);
+    }
+
+    public function cekTgl($id){
+        $transaksi = Transaksi::find($id);
+
+        $dateSelesai = Carbon::Parse($transaksi->tanggal_selesai);
+        $dedlineKembali = $dateSelesai->addHours(3)->format('Y-m-d H:i:s');
+
+        $date = "2022-05-03 23:01:00";
+        $carbon_date = Carbon::parse($date);
+
+        if($date > $dedlineKembali){
+            return response([
+            'message' => 'denda bos',
+            'data' => $dedlineKembali
+        ], 400);
+        }else{
+            return response([
+            'message' => 'aman bos',
+            'data' => $dedlineKembali
+        ], 400);
+        }
+
+        return response([
+            'message' => 'Masuk',
+            'data' => $dedlineKembali
         ], 400);
     }
 }
