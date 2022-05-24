@@ -39,8 +39,7 @@ Route::group(['middleware' => 'auth:api'], function (){
     Route::post('storeWithDriver/{email}', 'Api\CustomerController@storeWithDriver');
     Route::get('showDriver/{tanggal}', 'Api\TransaksiController@showDriver');
     Route::get('showMobil/{tanggal}', 'Api\TransaksiController@showMobil');
-    // Route::put('updateTransaksi/{id}', 'Api\CustomerController@updateTransaksi');
-    Route::put('uploadBuktiBayar/{id}', 'Api\CustomerController@uploadBuktiBayar');
+    Route::put('updateTransaksi/{id}', 'Api\CustomerController@updateTransaksi');
     Route::get('cekTgl/{id}', 'Api\CustomerController@cekTgl');
 });
 
