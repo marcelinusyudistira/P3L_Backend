@@ -282,7 +282,7 @@ class CustomerController extends Controller
         $updateData = $request->all();
         $validate = Validator::make($updateData, [
             'metode_pembayaran' => 'required',
-            'bukti_pembayaran' => 'required',
+            'bukti_pembayaran' => 'nullable',
         ]);
 
         if($request->hasFile('bukti_pembayaran')) {

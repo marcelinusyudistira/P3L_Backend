@@ -214,7 +214,7 @@ class MobilController extends Controller
     public function showDedline()
     {
         $dateNow = Carbon::now()->format('Y-m-d');
-        $dateFirst = Carbon::now()->subDays(30)->format('Y-m-d');
+        $dateFirst = Carbon::now()->addDays(30)->format('Y-m-d');
 
         $mobil = DB::table('mobils')
                     ->select('id_mobil','id_mitra','nama_mobil','plat_nomor','tipe_mobil','transmisi',

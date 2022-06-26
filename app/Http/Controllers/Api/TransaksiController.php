@@ -40,8 +40,13 @@ class TransaksiController extends Controller
         ], 400);
     }
 
-    public function show($id)
+    public function showByEmail($email)
     {   
+        $customer = DB::table('customers')
+            ->select('id_customer','nama_customer')->where('email',$email)->get();
+        
+        $id = $customer[0]->id_customer;
+
         $transaksi = DB::table('transaksis')
             ->join('pegawais', 'transaksis.id_pegawai', '=', 'pegawais.id_pegawai')
             ->join('customers', 'transaksis.id_customer', '=', 'customers.id_customer')
@@ -52,7 +57,41 @@ class TransaksiController extends Controller
                      'mobils.nama_mobil','mobils.harga_sewa','transaksis.tanggal_mulai','transaksis.tanggal_selesai','transaksis.tanggal_kembali',
                      'transaksis.diskon','transaksis.denda','transaksis.sub_total','transaksis.total_biaya','transaksis.metode_pembayaran',
                      'transaksis.status_transaksi','transaksis.bukti_pembayaran','transaksis.rating')
-            ->where('transaksis.id_customer',$id) //masih error
+            ->where('transaksis.id_customer',$id)
+            ->get();
+
+        if(count($transaksi)> 0){
+            return response([
+                'message' => 'Retrieve All Success',
+                'data' => $transaksi
+            ], 200);
+        }
+
+        return response([
+            'message' => 'Empty',
+            'data' => null
+        ], 400);
+    }
+
+    public function show($email)
+    {   
+        $customer = DB::table('customers')
+            ->select('id_customer','nama_customer')->where('email',$email)->get();
+        
+        $id = $customer[0]->id_customer;
+
+        $transaksi = DB::table('transaksis')
+            ->join('pegawais', 'transaksis.id_pegawai', '=', 'pegawais.id_pegawai')
+            ->join('customers', 'transaksis.id_customer', '=', 'customers.id_customer')
+            ->leftjoin('drivers', 'transaksis.id_driver', '=', 'drivers.id_driver')
+            ->leftjoin('promos', 'transaksis.id_promo', '=', 'promos.id_promo')
+            ->join('mobils', 'transaksis.id_mobil', '=', 'mobils.id_mobil')
+            ->select('transaksis.id_transaksi','transaksis.created_at','transaksis.hari','pegawais.nama_pegawai','customers.nama_customer','drivers.nama_driver','drivers.harga_driver','promos.kode_promo',
+                     'mobils.nama_mobil','mobils.harga_sewa','transaksis.tanggal_mulai','transaksis.tanggal_selesai','transaksis.tanggal_kembali',
+                     'transaksis.diskon','transaksis.denda','transaksis.sub_total','transaksis.total_biaya','transaksis.metode_pembayaran',
+                     'transaksis.status_transaksi','transaksis.bukti_pembayaran','transaksis.rating')
+            ->where('transaksis.id_customer',$id)
+            ->where('transaksis.status_transaksi','Selesai')
             ->get();
 
         if(count($transaksi)> 0){
@@ -185,19 +224,22 @@ class TransaksiController extends Controller
         ], 400);
     }
 
-    public function cekPromo($tanggalMulai,$tanggalSelesai,$id,$promo_id)
+    public function cekPromo($tanggalMulai,$tanggalSelesai,$email,$promo_id)
     {
-        $customer = Customer::find($id);
+        $cek = 0;
+        $customer = DB::table('customers')
+            ->select('id_customer','nama_customer','tanggal_lahir')->where('email',$email)->get();
 
         if($promo_id == 1){
-            $tanggalLahirCust = Carbon::Parse($customer->tanggal_lahir)->format('m-d');
+            $tanggalLahirCust = Carbon::Parse($customer[0]->tanggal_lahir)->format('m-d');
             $tanggalSewaM = Carbon::Parse($tanggalMulai)->format('m-d');
             $tanggalSewaS = Carbon::Parse($tanggalSelesai)->format('m-d');
 
             if(($tanggalLahirCust >= $tanggalSewaM) && ($tanggalLahirCust <= $tanggalSewaS)){
+                $cek = 1;
                 return response([
                     'message' => 'Lolos Syarat',
-                    'data' => 1
+                    'data' => $cek
                 ], 200);
             }
 
@@ -208,14 +250,15 @@ class TransaksiController extends Controller
         }
         else if($promo_id == 3){
             $saiki =  Carbon::now();
-            $tanggalLahirCust = Carbon::Parse($customer->tanggal_lahir);
+            $tanggalLahirCust = Carbon::Parse($customer[0]->tanggal_lahir);
 
             $diff = $tanggalLahirCust->diffInYears($saiki);
 
             if(($diff >= 17) && ($diff <= 22)){
+                $cek = 1;
                 return response([
                     'message' => 'Lolos Syarat',
-                    'data' => 1
+                    'data' => $cek
                 ], 200);
             }
 
@@ -223,6 +266,12 @@ class TransaksiController extends Controller
                 'message' => 'Tidak Lolos Syarat',
                 'data' => 0
             ], 400);
+        }
+        else{
+            return response([
+                'message' => 'Lolos Syarat',
+                'data' => $cek
+            ], 200);
         }
         
     }
